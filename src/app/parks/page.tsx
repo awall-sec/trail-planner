@@ -13,13 +13,16 @@ export default async function ParksPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
-      <header className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+    <div
+      className="flex flex-1 flex-col bg-zinc-900 bg-cover bg-center"
+      style={{ backgroundImage: "url('/images/mountains-parks-day.svg')" }}
+    >
+      <header className="flex items-center justify-between border-b border-white/10 bg-white/80 px-6 py-4 backdrop-blur-sm dark:bg-zinc-950/70">
         <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Trail Planner
         </h1>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-zinc-500">{user.email}</span>
+          <span className="text-sm text-zinc-600 dark:text-zinc-300">{user.email}</span>
           <form action={logout}>
             <button
               type="submit"
@@ -32,13 +35,15 @@ export default async function ParksPage() {
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-        <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          No parks yet
-        </h2>
-        <p className="mt-2 max-w-md text-sm text-zinc-500">
-          This is where you&apos;ll browse supported national parks and start
-          planning a trip. Park data is coming in Phase 1.
-        </p>
+        <div className="rounded-xl bg-white/90 px-8 py-6 shadow-xl backdrop-blur-sm dark:bg-zinc-950/85">
+          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+            No parks yet
+          </h2>
+          <p className="mt-2 max-w-md text-sm text-zinc-600 dark:text-zinc-400">
+            This is where you&apos;ll browse supported national parks and start
+            planning a trip. Park data is coming in Phase 1.
+          </p>
+        </div>
       </main>
     </div>
   );

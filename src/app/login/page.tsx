@@ -9,8 +9,11 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div
+      className="flex flex-1 items-center justify-center bg-zinc-900 bg-cover bg-center px-4"
+      style={{ backgroundImage: "url('/images/mountains-login-dusk.svg')" }}
+    >
+      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-white/95 p-8 shadow-xl backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/95">
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
           Log in
         </h1>
