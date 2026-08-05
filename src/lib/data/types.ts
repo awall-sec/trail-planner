@@ -50,11 +50,18 @@ export type Campsite = {
   capacity: number | null;
   max_group_size: number | null;
   description: string | null;
+  site_type: "designated" | "at-large" | null;
+};
+
+export type TrailNightCampsite = {
+  night_number: number;
+  campsite: Campsite;
 };
 
 export type ParkingLocation = {
   id: string;
   park_id: string;
+  trail_id: string | null;
   trailhead_name: string;
   lat: number | null;
   lng: number | null;
@@ -64,6 +71,7 @@ export type ParkingLocation = {
 export type Permit = {
   id: string;
   park_id: string;
+  trail_id: string | null;
   name: string;
   description: string | null;
   cost_usd: number | null;

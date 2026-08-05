@@ -3,7 +3,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getCampsitesByTrail,
   getParkByCode,
+  getParkingByTrail,
+  getPermitsByTrail,
   getTrail,
   getTrailSegmentsWithSights,
 } from "@/lib/data/parks";
@@ -14,6 +17,11 @@ const DIFFICULTY_LABEL: Record<string, string> = {
   moderate: "Moderate",
   strenuous: "Strenuous",
   "very strenuous": "Very strenuous",
+};
+
+const SITE_TYPE_LABEL: Record<string, string> = {
+  designated: "Designated site",
+  "at-large": "At-large / dispersed",
 };
 
 export default async function TrailDetailPage({
@@ -41,7 +49,12 @@ export default async function TrailDetailPage({
     notFound();
   }
 
-  const segments = await getTrailSegmentsWithSights(trail.id);
+  const [segments, campsites, parking, permits] = await Promise.all([
+    getTrailSegmentsWithSights(trail.id),
+    getCampsitesByTrail(trail.id),
+    getParkingByTrail(trail.id),
+    getPermitsByTrail(trail.id),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
@@ -75,6 +88,105 @@ export default async function TrailDetailPage({
         </div>
         {trail.description && (
           <p className="mt-4 text-zinc-700 dark:text-zinc-300">{trail.description}</p>
+        )}
+
+        {parking.length > 0 && (
+          <section className="mt-8 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              Parking
+            </h2>
+            {parking.map((p) => (
+              <div key={p.id} className="mt-2">
+                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                  {p.trailhead_name}
+                </p>
+                {p.permit_notes && (
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    {p.permit_notes}
+                  </p>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {campsites.length > 0 && (
+          <section className="mt-6">
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              Where you&apos;ll camp
+            </h2>
+            <ul className="space-y-3">
+              {campsites.map(({ night_number, campsite }) => (
+                <li
+                  key={night_number}
+                  className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                      Night {night_number}: {campsite.name}
+                    </p>
+                    {campsite.site_type && (
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                        {SITE_TYPE_LABEL[campsite.site_type] ?? campsite.site_type}
+                      </span>
+                    )}
+                  </div>
+                  {campsite.description && (
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                      {campsite.description}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {permits.length > 0 && (
+          <section className="mt-6">
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              Permits &amp; fees
+            </h2>
+            <ul className="space-y-3">
+              {permits.map((permit) => (
+                <li
+                  key={permit.id}
+                  className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                      {permit.name}
+                    </p>
+                    {permit.cost_usd != null && (
+                      <p className="text-sm text-zinc-500">
+                        from ${permit.cost_usd.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                  {permit.description && (
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                      {permit.description}
+                    </p>
+                  )}
+                  {permit.application_window && (
+                    <p className="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {permit.application_window}
+                    </p>
+                  )}
+                  {permit.application_url && (
+                    <a
+                      href={permit.application_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-sm font-medium text-blue-700 underline dark:text-blue-400"
+                    >
+                      Official permit page
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <h2 className="mt-8 mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
