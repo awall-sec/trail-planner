@@ -82,6 +82,57 @@ export async function getTrailSegmentsWithSights(
   })) as TrailSegment[];
 }
 
+export async function getTrailHighlightSights(
+  parkId: string,
+): Promise<Record<string, Sight>> {
+  const supabase = await createClient();
+  const { data: trails, error: trailError } = await supabase
+    .from("trails")
+    .select("id")
+    .eq("park_id", parkId);
+  if (trailError) throw trailError;
+
+  const trailIds = (trails ?? []).map((t) => t.id);
+  if (trailIds.length === 0) return {};
+
+  const { data: segments, error: segError } = await supabase
+    .from("trail_segments")
+    .select("id, trail_id")
+    .in("trail_id", trailIds)
+    .order("seq", { ascending: true });
+  if (segError) throw segError;
+
+  const segmentToTrail = new Map(
+    (segments ?? []).map((s) => [s.id as string, s.trail_id as string]),
+  );
+  // segments is already ordered by seq, so this preserves day-1-first order per trail.
+  const segmentIds = (segments ?? []).map((s) => s.id as string);
+
+  const { data: sights, error: sightError } = await supabase
+    .from("sights")
+    .select("*")
+    .in("trail_segment_id", segmentIds.length > 0 ? segmentIds : [""]);
+  if (sightError) throw sightError;
+
+  const sightsBySegment = new Map<string, Sight>();
+  for (const sight of (sights ?? []) as Sight[]) {
+    if (!sight.trail_segment_id) continue;
+    if (!sightsBySegment.has(sight.trail_segment_id)) {
+      sightsBySegment.set(sight.trail_segment_id, sight);
+    }
+  }
+
+  const highlights: Record<string, Sight> = {};
+  for (const segmentId of segmentIds) {
+    const trailId = segmentToTrail.get(segmentId);
+    const sight = sightsBySegment.get(segmentId);
+    if (trailId && sight && !highlights[trailId]) {
+      highlights[trailId] = sight;
+    }
+  }
+  return highlights;
+}
+
 export async function getCampsitesByTrail(
   trailId: string,
 ): Promise<TrailNightCampsite[]> {

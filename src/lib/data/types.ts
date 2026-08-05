@@ -78,4 +78,6 @@ export type Permit = {
   application_url: string | null;
   application_window: string | null;
   max_group_size: number | null;
+  recreation_gov_permit_id: string | null;
+  recreation_gov_division_id: string | null;
 };

@@ -11,6 +11,7 @@ import {
   getTrailSegmentsWithSights,
 } from "@/lib/data/parks";
 import { AppHeader } from "@/components/AppHeader";
+import { PermitAvailability } from "@/components/PermitAvailability";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -182,6 +183,12 @@ export default async function TrailDetailPage({
                     >
                       Official permit page
                     </a>
+                  )}
+                  {permit.recreation_gov_permit_id && permit.recreation_gov_division_id && (
+                    <PermitAvailability
+                      recreationGovPermitId={permit.recreation_gov_permit_id}
+                      recreationGovDivisionId={permit.recreation_gov_division_id}
+                    />
                   )}
                 </li>
               ))}

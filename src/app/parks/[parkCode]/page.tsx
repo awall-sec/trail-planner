@@ -2,7 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getParkByCode, getTrailsByPark } from "@/lib/data/parks";
+import {
+  getParkByCode,
+  getTrailHighlightSights,
+  getTrailsByPark,
+} from "@/lib/data/parks";
 import { AppHeader } from "@/components/AppHeader";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -32,7 +36,10 @@ export default async function ParkDetailPage({
     notFound();
   }
 
-  const trails = await getTrailsByPark(park.id);
+  const [trails, highlights] = await Promise.all([
+    getTrailsByPark(park.id),
+    getTrailHighlightSights(park.id),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
@@ -75,42 +82,60 @@ export default async function ParkDetailPage({
             Routes
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {trails.map((trail) => (
-              <Link
-                key={trail.id}
-                href={`/parks/${park.nps_park_code}/trails/${trail.id}`}
-                className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
-              >
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
-                  {trail.name}
-                </h3>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
-                  {trail.distance_miles != null && (
-                    <span>{trail.distance_miles} mi</span>
+            {trails.map((trail) => {
+              const highlight = highlights[trail.id];
+              return (
+                <Link
+                  key={trail.id}
+                  href={`/parks/${park.nps_park_code}/trails/${trail.id}`}
+                  className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  {highlight?.photo_urls[0] && (
+                    <div className="relative h-36 w-full">
+                      <Image
+                        src={highlight.photo_urls[0]}
+                        alt={highlight.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                      />
+                    </div>
                   )}
-                  {trail.elevation_gain_ft != null && (
-                    <span>{trail.elevation_gain_ft.toLocaleString()} ft gain</span>
-                  )}
-                  {trail.typical_duration_days != null && (
-                    <span>
-                      {trail.typical_duration_days} day
-                      {trail.typical_duration_days > 1 ? "s" : ""}
-                    </span>
-                  )}
-                  {trail.difficulty && (
-                    <span>{DIFFICULTY_LABEL[trail.difficulty] ?? trail.difficulty}</span>
-                  )}
-                </div>
-                {trail.description && (
-                  <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
-                    {trail.description}
-                  </p>
-                )}
-                <p className="mt-3 text-sm font-medium text-blue-700 dark:text-blue-400">
-                  View route, camps, parking &amp; permits &rarr;
-                </p>
-              </Link>
-            ))}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                      {trail.name}
+                    </h3>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
+                      {trail.distance_miles != null && (
+                        <span>{trail.distance_miles} mi</span>
+                      )}
+                      {trail.elevation_gain_ft != null && (
+                        <span>{trail.elevation_gain_ft.toLocaleString()} ft gain</span>
+                      )}
+                      {trail.typical_duration_days != null && (
+                        <span>
+                          {trail.typical_duration_days} day
+                          {trail.typical_duration_days > 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {trail.difficulty && (
+                        <span>
+                          {DIFFICULTY_LABEL[trail.difficulty] ?? trail.difficulty}
+                        </span>
+                      )}
+                    </div>
+                    {trail.description && (
+                      <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        {trail.description}
+                      </p>
+                    )}
+                    <p className="mt-3 text-sm font-medium text-blue-700 dark:text-blue-400">
+                      View route, camps, parking &amp; permits &rarr;
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       </main>
