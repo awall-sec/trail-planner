@@ -8,6 +8,7 @@ import {
   getTrailsByPark,
 } from "@/lib/data/parks";
 import { AppHeader } from "@/components/AppHeader";
+import { HikeTypeBadge } from "@/components/HikeTypeBadge";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -99,6 +100,7 @@ export default async function ParkDetailPage({
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, 50vw"
                       />
+                      <HikeTypeBadge durationDays={trail.typical_duration_days} />
                     </div>
                   )}
                   <div className="p-4">
