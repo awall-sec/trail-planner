@@ -207,6 +207,34 @@ this doc is the "how we got here and what to watch out for" companion to it.
   `C:\Users\awall\.claude\plans\cosmic-spinning-cherny.md` (not in the repo,
   may not be accessible from a different machine/session).
 
+## New trail added: Alta Trail to Alta Meadow (Sequoia)
+
+Added at user request (a real trip they'd just booked): Wolverton Trailhead →
+Panther Gap → Mehrten Meadow → Alta Meadow, out-and-back, camping one night
+at Alta Meadow. Migration `0015_add_alta_trail.sql`. Notably this one got
+**real geometry from the start** (not an approximation later upgraded) — the
+full Wolverton-to-Alta-Meadow path was hand-chained from verified OSM way
+junctions (not the automated `findBestChainedPath` matcher, which failed on
+this route: see below). Every waypoint elevation was cross-checked against
+independently-researched real values before being trusted (Wolverton 7344ft
+vs. known ~7280ft, Panther Gap 8512ft vs. known ~8450ft — both close matches).
+
+**Algorithm gap found and worked around, worth fixing if the pipeline gets
+revisited**: `findBestChainedPath`'s main chaining loop only checks whether a
+candidate way's *endpoint* touches the current chain's end — it doesn't check
+for a touch point in the *middle* of a long way, unlike its initial seed
+search which does. That's exactly what happened here: a 209-point way (OSM's
+"Alta-Panther Gap Trail") passes through the exact junction point (0m away)
+needed to connect to "Panther Gap Trail", but only at its 83rd of 209 points,
+not at either endpoint — so the automated matcher reported `no match` even
+though a perfect connection existed. Found by comparing every point of one
+way-cluster against every point of another (see
+`scripts/osm-geometry/verify-panther-gap.js` pattern, not copied into the
+persisted scripts since it was one-off) rather than trusting endpoint-only
+distance checks. Fixing `findBestChainedPath` to check mid-way touches on
+every hop (not just the seed) would likely recover other similarly-shaped
+failures elsewhere in the 11 remaining unmatched segments.
+
 ## Suggested next steps
 
 1. **Get visual confirmation** from the user that the map/chart/markers all
