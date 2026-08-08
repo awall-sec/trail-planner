@@ -82,3 +82,27 @@ export type Permit = {
   recreation_gov_permit_id: string | null;
   recreation_gov_division_id: string | null;
 };
+
+export type Trip = {
+  id: string;
+  owner_user_id: string;
+  park_id: string;
+  trail_id: string | null;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+  party_size: number | null;
+  share_token: string;
+};
+
+export type TripDay = {
+  id: string;
+  trip_id: string;
+  day_number: number;
+  campsite_id: string | null;
+  notes: string | null;
+};
+
+export type TripDayWithCampsite = TripDay & {
+  campsite: Campsite | null;
+};

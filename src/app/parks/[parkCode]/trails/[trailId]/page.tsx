@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -10,24 +9,10 @@ import {
   getTrail,
   getTrailSegmentsWithSights,
 } from "@/lib/data/parks";
-import type { TrailSegment } from "@/lib/data/types";
+import { groupSegmentsByDay } from "@/lib/itinerary";
 import { AppHeader } from "@/components/AppHeader";
-import { PermitAvailability } from "@/components/PermitAvailability";
-
-function groupSegmentsByDay(
-  segments: TrailSegment[],
-): { dayNumber: number | null; segments: TrailSegment[] }[] {
-  const groups: { dayNumber: number | null; segments: TrailSegment[] }[] = [];
-  for (const segment of segments) {
-    const last = groups[groups.length - 1];
-    if (last && last.dayNumber === segment.day_number) {
-      last.segments.push(segment);
-    } else {
-      groups.push({ dayNumber: segment.day_number, segments: [segment] });
-    }
-  }
-  return groups;
-}
+import { PermitList } from "@/components/PermitList";
+import { SegmentList } from "@/components/SegmentList";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -107,6 +92,13 @@ export default async function TrailDetailPage({
           <p className="mt-4 text-zinc-700 dark:text-zinc-300">{trail.description}</p>
         )}
 
+        <Link
+          href={`/parks/${park.nps_park_code}/trails/${trail.id}/plan`}
+          className="mt-4 inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          Plan this trip
+        </Link>
+
         {parking.length > 0 && (
           <section className="mt-8 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
@@ -164,51 +156,7 @@ export default async function TrailDetailPage({
             <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Permits &amp; fees
             </h2>
-            <ul className="space-y-3">
-              {permits.map((permit) => (
-                <li
-                  key={permit.id}
-                  className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                      {permit.name}
-                    </p>
-                    {permit.cost_usd != null && (
-                      <p className="text-sm text-zinc-500">
-                        from ${permit.cost_usd.toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                  {permit.description && (
-                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                      {permit.description}
-                    </p>
-                  )}
-                  {permit.application_window && (
-                    <p className="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      {permit.application_window}
-                    </p>
-                  )}
-                  {permit.application_url && (
-                    <a
-                      href={permit.application_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-block text-sm font-medium text-blue-700 underline dark:text-blue-400"
-                    >
-                      Official permit page
-                    </a>
-                  )}
-                  {permit.recreation_gov_permit_id && permit.recreation_gov_division_id && (
-                    <PermitAvailability
-                      recreationGovPermitId={permit.recreation_gov_permit_id}
-                      recreationGovDivisionId={permit.recreation_gov_division_id}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
+            <PermitList permits={permits} />
           </section>
         )}
 
@@ -222,57 +170,7 @@ export default async function TrailDetailPage({
                 Day {day.dayNumber}
               </h3>
             )}
-            <ol className="space-y-6 border-l-2 border-zinc-200 pl-6 dark:border-zinc-800">
-              {day.segments.map((segment) => (
-                <li key={segment.id} className="relative">
-                  <span className="absolute -left-[31px] top-1 h-3 w-3 rounded-full bg-zinc-400 dark:bg-zinc-600" />
-                  <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                    {segment.start_point_name} &rarr; {segment.end_point_name}
-                  </p>
-                  {segment.distance_miles != null && (
-                    <p className="text-sm text-zinc-500">{segment.distance_miles} mi</p>
-                  )}
-
-                  {segment.sights.length > 0 && (
-                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {segment.sights.map((sight) => (
-                        <div
-                          key={sight.id}
-                          className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
-                        >
-                          {sight.photo_urls[0] && (
-                            <div className="relative h-28 w-full">
-                              <Image
-                                src={sight.photo_urls[0]}
-                                alt={sight.name}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 640px) 100vw, 50vw"
-                              />
-                            </div>
-                          )}
-                          <div className="p-3">
-                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                              {sight.name}
-                              {sight.mile_marker != null && (
-                                <span className="ml-1 font-normal text-zinc-500">
-                                  (mile {sight.mile_marker})
-                                </span>
-                              )}
-                            </p>
-                            {sight.description && (
-                              <p className="mt-1 line-clamp-3 text-xs text-zinc-600 dark:text-zinc-400">
-                                {sight.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ol>
+            <SegmentList segments={day.segments} />
           </div>
         ))}
       </main>

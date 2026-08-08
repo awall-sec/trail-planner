@@ -28,6 +28,17 @@ export async function getParkByCode(parkCode: string): Promise<Park | null> {
   return data as Park | null;
 }
 
+export async function getParkById(parkId: string): Promise<Park | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("parks")
+    .select("*")
+    .eq("id", parkId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as Park | null;
+}
+
 export async function getTrailsByPark(parkId: string): Promise<Trail[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
