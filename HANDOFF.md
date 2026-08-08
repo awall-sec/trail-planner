@@ -97,13 +97,33 @@ this doc is the "how we got here and what to watch out for" companion to it.
 
 ## Current data state (verify before trusting — this will drift)
 
-- **`trail_segments.geometry`**: 49/54 segments have *some* geometry; only
-  **5 have dense, verified-accurate real OSM geometry** (Half Dome's
-  summit-approach leg, 3 of 4 Franklin Lakes segments, one High Sierra Trail
-  leg). The other 44 keep the original hand-researched 3-8-point
-  approximation. 5 segments remain `null` (Pinnacles: 2 segments with
-  genuinely unsourced junction points; the geometry pipeline wasn't able to
-  improve on these either).
+- **`trail_segments.geometry`**: 49/54 segments have *some* geometry.
+  **19 now have dense, verified-accurate real OSM geometry** (up from the
+  original 5 — a follow-up session fixed a user-reported bug where the Half
+  Dome cables *descent* was a literal 2-point straight line skipping the
+  trail entirely, then found and fixed 25 more segments with the same
+  problem across all 5 parks; see migrations `0009`-`0012`). Sources for the
+  extra 14: reversing an already-verified out-and-back leg (free, no new
+  data — Half Dome cables return, Crescent Meadow↔Bearpaw Meadow, Road's
+  End↔Paradise Valley), accepting real OSM matches that a stricter quality
+  filter had rejected last session (after manually sanity-checking each
+  against known real-world elevations for its landmarks), a wider-bbox/
+  looser-tolerance retry pass, and one case (Hamilton Lake) where the real
+  matched trail overshot the target — re-sliced at the nearest point to the
+  lake's real coordinate instead of discarding the match outright.
+  **11 segments remain 2-point straight lines** with no real geometry found
+  despite the retry pass (Pinnacles' Bear Gulch Cave interior, Lassen's
+  Juniper Lake↔Horseshoe Lake↔Snag Lake, Kings Canyon's Copper Creek↔Grouse
+  Lake, Sequoia's individual Lakes Trail legs to Heather/Emerald/Pear Lake —
+  the only real data found for that last one merges two different trail
+  variants and elevations didn't line up cleanly enough to trust a derived
+  slice, see `0012`'s commit history for the details). One rejected match
+  is worth knowing about if you revisit this: Bearpaw Meadow→Hamilton Lake's
+  full OSM chain match overshot ~300m of elevation past the lake, onward
+  toward Precipice Lake on the same named way — a reminder that a "matched"
+  result can still silently wander past the intended endpoint. 5 segments
+  remain `null` (Pinnacles: 2 segments with genuinely unsourced junction
+  points).
 - **`sights.lat`/`lng`**: 5 of ~27 sights have real backfilled coordinates
   (matched by strict name verification against OSM POI nodes). The rest still
   rely on `mile_marker`-based interpolation along the route (see
@@ -123,16 +143,22 @@ this doc is the "how we got here and what to watch out for" companion to it.
   lint/tsc/DB queries + asking you to look, not a screenshot. **Please check
   the Half Dome trail page and a couple others to confirm the map/chart
   actually look right before trusting this summary fully.**
-- **Geometry match yield is low (5/54 via the new pipeline).** The
-  chain-matching algorithm (`findBestChainedPath` in
-  `scripts/osm-geometry/geo-pipeline.js`) is a greedy goal-seeking walk, not a
-  real graph search — it can still get confused at complex multi-way
-  junctions (Yosemite Valley was the worst case; Happy Isles specifically
-  never matched despite multiple tuning attempts). A proper algorithm
+- **Geometry match yield is now 19/54** (see "Current data state" above for
+  how that grew from the original 5). The chain-matching algorithm
+  (`findBestChainedPath` in `scripts/osm-geometry/geo-pipeline.js`) is still
+  a greedy goal-seeking walk, not a real graph search — it can still get
+  confused at complex multi-way junctions (Yosemite Valley was the worst
+  case; Happy Isles specifically never matched despite multiple tuning
+  attempts) or silently overshoot past the intended endpoint onto the same
+  named way's continuation (caught once via an elevation sanity check, see
+  Hamilton Lake above — worth double-checking any future "matched" result
+  against a real elevation, not just endpoint distance). A proper algorithm
   (Dijkstra/A* over a real trail graph, not greedy nearest-remaining-distance)
-  would likely recover more of the 44 remaining approximate segments. This is
-  a reasonable next investment if more accurate maps matter enough to justify
-  more time.
+  would likely recover more of the remaining 11 two-point segments (see
+  `scripts/osm-geometry/retry-pipeline.js` for the wider-bbox retry pass that
+  got the yield from 5 to 19 — same algorithm, just looser tolerances, so
+  there's still room before a full rewrite is needed). This is a reasonable
+  next investment if more accurate maps matter enough to justify more time.
 - **`trail_amenities.trail_id`** is unset for all 207 rows — they're
   park-scoped only. `RouteMap.tsx` handles this fine at render time (filters
   by proximity to the segments actually shown, see `nearRoute` in
