@@ -98,7 +98,7 @@ this doc is the "how we got here and what to watch out for" companion to it.
 ## Current data state (verify before trusting — this will drift)
 
 - **`trail_segments.geometry`**: 49/54 segments have *some* geometry.
-  **19 now have dense, verified-accurate real OSM geometry** (up from the
+  **21 now have dense, verified-accurate real OSM geometry** (up from the
   original 5 — a follow-up session fixed a user-reported bug where the Half
   Dome cables *descent* was a literal 2-point straight line skipping the
   trail entirely, then found and fixed 25 more segments with the same
@@ -124,6 +124,18 @@ this doc is the "how we got here and what to watch out for" companion to it.
   result can still silently wander past the intended endpoint. 5 segments
   remain `null` (Pinnacles: 2 segments with genuinely unsourced junction
   points).
+- **Half Dome day 1** (Happy Isles → Little Yosemite Valley, the Mist Trail
+  ascent) was reported low-accuracy by the user after the first fix pass and
+  got its own targeted follow-up (`0013`): OSM tags this corridor across many
+  short "Mist Trail" and "John Muir Trail" fragments that the chain-matcher
+  couldn't connect when seeded from the Happy Isles end (it kept locking onto
+  a dead-end JMT branch among several candidates there); seeding the same
+  search from the LYV end instead found the one connected route. Applied to
+  both day 1 and day 2's return leg. Caveat: it's the same underlying trail
+  data both directions (not a distinct pure-Mist-Trail-only variant, since
+  Mist-Trail-tagged fragments alone don't reach either endpoint), and it
+  falls ~900m short of the exact Happy Isles trailhead pin — a real gap in
+  OSM's way network there, not a matching bug.
 - **`sights.lat`/`lng`**: 5 of ~27 sights have real backfilled coordinates
   (matched by strict name verification against OSM POI nodes). The rest still
   rely on `mile_marker`-based interpolation along the route (see
