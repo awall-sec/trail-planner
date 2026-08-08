@@ -126,16 +126,22 @@ this doc is the "how we got here and what to watch out for" companion to it.
   points).
 - **Half Dome day 1** (Happy Isles → Little Yosemite Valley, the Mist Trail
   ascent) was reported low-accuracy by the user after the first fix pass and
-  got its own targeted follow-up (`0013`): OSM tags this corridor across many
-  short "Mist Trail" and "John Muir Trail" fragments that the chain-matcher
-  couldn't connect when seeded from the Happy Isles end (it kept locking onto
-  a dead-end JMT branch among several candidates there); seeding the same
-  search from the LYV end instead found the one connected route. Applied to
-  both day 1 and day 2's return leg. Caveat: it's the same underlying trail
-  data both directions (not a distinct pure-Mist-Trail-only variant, since
-  Mist-Trail-tagged fragments alone don't reach either endpoint), and it
-  falls ~900m short of the exact Happy Isles trailhead pin — a real gap in
-  OSM's way network there, not a matching bug.
+  got two rounds of targeted follow-up (`0013`, `0014`): OSM tags this
+  corridor across many short "Mist Trail" and "John Muir Trail" fragments
+  that the chain-matcher couldn't connect when seeded from the Happy Isles
+  end (it kept locking onto a dead-end JMT branch among several candidates
+  there); seeding the same search from the LYV end instead found the one
+  connected route (`0013`). The user then reported the trailhead still
+  wasn't connected — `0013`'s route fell ~900m short of the real Happy Isles
+  pin. Root cause turned out to be one specific way (osm way `538543004`)
+  sitting 30.4m from where the matched chain began, just outside the 30m
+  join tolerance used; widening that to 50m in `0014` picked it up and both
+  endpoints now land within ~45m of their real coordinates (elevation at the
+  Happy Isles end, 1228.7m, matches its known real elevation almost
+  exactly). It's still the same underlying trail data both directions (not a
+  distinct pure-Mist-Trail-only variant, since Mist-Trail-tagged fragments
+  alone don't reach either endpoint) — worth knowing if the two directions
+  ever need to look visually distinct on the map.
 - **`sights.lat`/`lng`**: 5 of ~27 sights have real backfilled coordinates
   (matched by strict name verification against OSM POI nodes). The rest still
   rely on `mile_marker`-based interpolation along the route (see
