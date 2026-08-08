@@ -34,6 +34,7 @@ export type TrailSegment = {
   id: string;
   trail_id: string;
   seq: number;
+  day_number: number | null;
   start_point_name: string;
   end_point_name: string;
   distance_miles: number | null;

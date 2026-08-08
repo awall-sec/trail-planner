@@ -10,8 +10,24 @@ import {
   getTrail,
   getTrailSegmentsWithSights,
 } from "@/lib/data/parks";
+import type { TrailSegment } from "@/lib/data/types";
 import { AppHeader } from "@/components/AppHeader";
 import { PermitAvailability } from "@/components/PermitAvailability";
+
+function groupSegmentsByDay(
+  segments: TrailSegment[],
+): { dayNumber: number | null; segments: TrailSegment[] }[] {
+  const groups: { dayNumber: number | null; segments: TrailSegment[] }[] = [];
+  for (const segment of segments) {
+    const last = groups[groups.length - 1];
+    if (last && last.dayNumber === segment.day_number) {
+      last.segments.push(segment);
+    } else {
+      groups.push({ dayNumber: segment.day_number, segments: [segment] });
+    }
+  }
+  return groups;
+}
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -199,57 +215,66 @@ export default async function TrailDetailPage({
         <h2 className="mt-8 mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Route
         </h2>
-        <ol className="space-y-6 border-l-2 border-zinc-200 pl-6 dark:border-zinc-800">
-          {segments.map((segment) => (
-            <li key={segment.id} className="relative">
-              <span className="absolute -left-[31px] top-1 h-3 w-3 rounded-full bg-zinc-400 dark:bg-zinc-600" />
-              <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                {segment.start_point_name} &rarr; {segment.end_point_name}
-              </p>
-              {segment.distance_miles != null && (
-                <p className="text-sm text-zinc-500">{segment.distance_miles} mi</p>
-              )}
+        {groupSegmentsByDay(segments).map((day) => (
+          <div key={day.dayNumber ?? "unassigned"} className="mb-8">
+            {day.dayNumber != null && (
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                Day {day.dayNumber}
+              </h3>
+            )}
+            <ol className="space-y-6 border-l-2 border-zinc-200 pl-6 dark:border-zinc-800">
+              {day.segments.map((segment) => (
+                <li key={segment.id} className="relative">
+                  <span className="absolute -left-[31px] top-1 h-3 w-3 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+                  <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                    {segment.start_point_name} &rarr; {segment.end_point_name}
+                  </p>
+                  {segment.distance_miles != null && (
+                    <p className="text-sm text-zinc-500">{segment.distance_miles} mi</p>
+                  )}
 
-              {segment.sights.length > 0 && (
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {segment.sights.map((sight) => (
-                    <div
-                      key={sight.id}
-                      className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
-                    >
-                      {sight.photo_urls[0] && (
-                        <div className="relative h-28 w-full">
-                          <Image
-                            src={sight.photo_urls[0]}
-                            alt={sight.name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 100vw, 50vw"
-                          />
-                        </div>
-                      )}
-                      <div className="p-3">
-                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                          {sight.name}
-                          {sight.mile_marker != null && (
-                            <span className="ml-1 font-normal text-zinc-500">
-                              (mile {sight.mile_marker})
-                            </span>
+                  {segment.sights.length > 0 && (
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {segment.sights.map((sight) => (
+                        <div
+                          key={sight.id}
+                          className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+                        >
+                          {sight.photo_urls[0] && (
+                            <div className="relative h-28 w-full">
+                              <Image
+                                src={sight.photo_urls[0]}
+                                alt={sight.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 100vw, 50vw"
+                              />
+                            </div>
                           )}
-                        </p>
-                        {sight.description && (
-                          <p className="mt-1 line-clamp-3 text-xs text-zinc-600 dark:text-zinc-400">
-                            {sight.description}
-                          </p>
-                        )}
-                      </div>
+                          <div className="p-3">
+                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                              {sight.name}
+                              {sight.mile_marker != null && (
+                                <span className="ml-1 font-normal text-zinc-500">
+                                  (mile {sight.mile_marker})
+                                </span>
+                              )}
+                            </p>
+                            {sight.description && (
+                              <p className="mt-1 line-clamp-3 text-xs text-zinc-600 dark:text-zinc-400">
+                                {sight.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </li>
-          ))}
-        </ol>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
       </main>
     </div>
   );
