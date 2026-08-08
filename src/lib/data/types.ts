@@ -28,6 +28,25 @@ export type Sight = {
   photo_urls: string[];
   photo_attribution: string | null;
   mile_marker: number | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+export type TrailAmenity = {
+  id: string;
+  park_id: string;
+  trail_id: string | null;
+  category: "restroom" | "water_source";
+  name: string | null;
+  lat: number;
+  lng: number;
+  description: string | null;
+};
+
+export type LineStringGeometry = {
+  type: "LineString";
+  // [lng, lat, elevation_meters]
+  coordinates: [number, number, number][];
 };
 
 export type TrailSegment = {
@@ -38,6 +57,7 @@ export type TrailSegment = {
   start_point_name: string;
   end_point_name: string;
   distance_miles: number | null;
+  geometry: LineStringGeometry | null;
   sights: Sight[];
 };
 

@@ -7,11 +7,15 @@ import {
   getParkingByTrail,
   getPermitsByTrail,
   getTrail,
+  getTrailAmenitiesByTrail,
   getTrailSegmentsWithSights,
 } from "@/lib/data/parks";
 import { groupSegmentsByDay } from "@/lib/itinerary";
+import { labelCampsiteOccurrences, labelParking, labelSights } from "@/lib/labels";
 import { AppHeader } from "@/components/AppHeader";
+import { ElevationChart } from "@/components/ElevationChart";
 import { PermitList } from "@/components/PermitList";
+import { RouteMap } from "@/components/RouteMap";
 import { SegmentList } from "@/components/SegmentList";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -51,12 +55,17 @@ export default async function TrailDetailPage({
     notFound();
   }
 
-  const [segments, campsites, parking, permits] = await Promise.all([
+  const [segments, campsites, parking, permits, trailAmenities] = await Promise.all([
     getTrailSegmentsWithSights(trail.id),
     getCampsitesByTrail(trail.id),
     getParkingByTrail(trail.id),
     getPermitsByTrail(trail.id),
+    getTrailAmenitiesByTrail(trail.id),
   ]);
+
+  const campsiteOccurrenceLabels = labelCampsiteOccurrences(campsites.map((c) => c.campsite));
+  const parkingLabels = labelParking(parking);
+  const sightLabels = labelSights(segments);
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
@@ -99,6 +108,18 @@ export default async function TrailDetailPage({
           Plan this trip
         </Link>
 
+        <div className="mt-6">
+          <RouteMap
+            segments={segments}
+            campsites={campsites.map((c) => c.campsite)}
+            parkingLocations={parking}
+            trailAmenities={trailAmenities}
+          />
+        </div>
+        <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <ElevationChart segments={segments} title={trail.name} />
+        </div>
+
         {parking.length > 0 && (
           <section className="mt-8 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
@@ -107,6 +128,9 @@ export default async function TrailDetailPage({
             {parking.map((p) => (
               <div key={p.id} className="mt-2">
                 <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                  <span className="mr-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                    {parkingLabels.get(p.id)}
+                  </span>
                   {p.trailhead_name}
                 </p>
                 {p.permit_notes && (
@@ -125,13 +149,16 @@ export default async function TrailDetailPage({
               Where you&apos;ll camp
             </h2>
             <ul className="space-y-3">
-              {campsites.map(({ night_number, campsite }) => (
+              {campsites.map(({ night_number, campsite }, index) => (
                 <li
                   key={night_number}
                   className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                      <span className="mr-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white">
+                        {campsiteOccurrenceLabels[index]}
+                      </span>
                       Night {night_number}: {campsite.name}
                     </p>
                     {campsite.site_type && (
@@ -170,7 +197,7 @@ export default async function TrailDetailPage({
                 Day {day.dayNumber}
               </h3>
             )}
-            <SegmentList segments={day.segments} />
+            <SegmentList segments={day.segments} sightLabels={sightLabels} />
           </div>
         ))}
       </main>

@@ -6,13 +6,17 @@ import {
   getParkById,
   getPermitsByTrail,
   getTrail,
+  getTrailAmenitiesByTrail,
   getTrailSegmentsWithSights,
 } from "@/lib/data/parks";
 import { getTripDaysWithCampsites, getTrip } from "@/lib/data/trips";
 import { groupSegmentsByDay } from "@/lib/itinerary";
-import type { Campsite, TripDayWithCampsite } from "@/lib/data/types";
+import { labelCampsiteOccurrences, labelSights } from "@/lib/labels";
+import type { Campsite, TrailAmenity, TripDayWithCampsite } from "@/lib/data/types";
 import { AppHeader } from "@/components/AppHeader";
+import { ElevationChart } from "@/components/ElevationChart";
 import { PermitList } from "@/components/PermitList";
+import { RouteMap } from "@/components/RouteMap";
 import { SegmentList } from "@/components/SegmentList";
 import { updateTripDay } from "@/app/trips/actions";
 
@@ -57,10 +61,11 @@ export default async function TripDetailPage({
     getTripDaysWithCampsites(tripId),
   ]);
 
-  const [segments, permits, campsiteOptionRows] = await Promise.all([
+  const [segments, permits, campsiteOptionRows, trailAmenities] = await Promise.all([
     trip.trail_id ? getTrailSegmentsWithSights(trip.trail_id) : Promise.resolve([]),
     trip.trail_id ? getPermitsByTrail(trip.trail_id) : Promise.resolve([]),
     trip.trail_id ? getCampsitesByTrail(trip.trail_id) : Promise.resolve([]),
+    trip.trail_id ? getTrailAmenitiesByTrail(trip.trail_id) : Promise.resolve([]),
   ]);
 
   const segmentsByDay = new Map(
@@ -143,6 +148,7 @@ export default async function TripDetailPage({
               campsiteOptions={[...campsiteOptions.values()]}
               segments={segmentsByDay.get(day.day_number) ?? []}
               hasPermits={permits.length > 0}
+              trailAmenities={trailAmenities}
             />
           ))}
         </div>
@@ -166,13 +172,18 @@ function TripDayCard({
   campsiteOptions,
   segments,
   hasPermits,
+  trailAmenities,
 }: {
   tripId: string;
   day: TripDayWithCampsite;
   campsiteOptions: Campsite[];
   segments: ReturnType<typeof groupSegmentsByDay>[number]["segments"];
   hasPermits: boolean;
+  trailAmenities: TrailAmenity[];
 }) {
+  const campsiteLabel = day.campsite ? labelCampsiteOccurrences([day.campsite])[0] : null;
+  const sightLabels = labelSights(segments);
+
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -195,7 +206,14 @@ function TripDayCard({
 
         {campsiteOptions.length > 0 && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-500">Campsite</label>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
+              {campsiteLabel && (
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white">
+                  {campsiteLabel}
+                </span>
+              )}
+              Campsite
+            </label>
             <select
               name="campsiteId"
               defaultValue={day.campsite_id ?? ""}
@@ -230,8 +248,14 @@ function TripDayCard({
       </form>
 
       {segments.length > 0 && (
-        <div className="mt-4">
-          <SegmentList segments={segments} />
+        <div className="mt-4 space-y-4">
+          <RouteMap
+            segments={segments}
+            campsites={day.campsite ? [day.campsite] : []}
+            trailAmenities={trailAmenities}
+          />
+          <ElevationChart segments={segments} title={`Day ${day.day_number}`} />
+          <SegmentList segments={segments} sightLabels={sightLabels} />
         </div>
       )}
     </section>

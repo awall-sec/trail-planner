@@ -1,0 +1,179 @@
+# Session Handoff Notes
+
+Written to carry context into a fresh session/context window. Covers Phase 2
+and Phase 3 work: decisions made, bugs found and fixed, current data state,
+and what's left to do. See `BUILD_PLAN.md` for the overall product plan —
+this doc is the "how we got here and what to watch out for" companion to it.
+
+## Where things stand
+
+- **Phase 1** (park/trail browser, 5 parks seeded) — done.
+- **Phase 2** (trip setup, auto-generated itinerary, editable per-day notes/campsite) — done.
+- **Phase 3** (maps, elevation charts, real trail geometry) — substantially done,
+  with a real-data enrichment pass beyond the original plan (see below).
+  Not yet visually confirmed by the user in a real browser (see "Known gaps").
+
+## Key decisions made this session
+
+- **Phase 2 scope**: auto-generate itinerary from each trail's existing
+  night→campsite mapping; allow editing per-day notes and swapping which of
+  the *trail's own* known campsites is used on a given night. Explicitly
+  deferred: full night reordering, rest-day insertion, custom segment
+  picking — would require decoupling `trip_days.day_number` from the trail's
+  fixed segment-to-day mapping.
+- **Phase 3 map stack**: MapLibre GL JS + OpenTopoMap raster tiles (per
+  `BUILD_PLAN.md` §6), Recharts for elevation profiles. No new libraries beyond
+  those two were added.
+- **Geometry data strategy** (big pivot mid-session): started with hand-researched
+  waypoints (3-8 points/segment from NPS/Wikipedia/GNIS), then — at your
+  explicit request to "invest significant effort" — built a pipeline to pull
+  **real surveyed trail geometry from OpenStreetMap** (via the Overpass API)
+  and **real elevation from OpenTopoData** (`ned10m`/USGS dataset), plus POIs,
+  restrooms, and water sources from OSM. This was **partially successful**
+  (see "Current data state") — OSM's fragmented way network at busy trail
+  junctions is a real graph-matching problem, not fully solved.
+- **Data quality over quantity**: twice during this work I caught myself about
+  to apply bad data and stopped — (1) a chain-matching algorithm that wandered
+  onto the wrong trail branch at junctions and produced plausible-looking but
+  wrong geometry (fixed via goal-seeking search + mid-way seed detection,
+  still only ~9% yield on the hardest cases), and (2) a POI name-matching
+  pass that matched on generic shared words ("Vernal Fall" → "Lower Yosemite
+  Fall View") — rewritten to require exact or genuine multi-word-phrase
+  matches before applying anything. Lesson for future work in this codebase:
+  **verify geographic/positional plausibility before writing pipeline output
+  to the database, always.**
+
+## Bugs found and fixed (useful for future debugging in this repo)
+
+1. **MapLibre + Turbopack**: MapLibre resolves its Web Worker script relative
+   to `import.meta.url` at runtime; Turbopack's dev bundling doesn't preserve
+   that path, so the worker request 404s into Next's HTML fallback and the
+   map's style/tile pipeline never finishes loading (canvas stays blank, no
+   errors). Fixed in `src/components/RouteMap.tsx` via
+   `maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs")`, pointing at a static
+   copy in `public/` (`public/maplibre-gl-worker.mjs` +
+   `public/maplibre-gl-shared.mjs`, copied from
+   `node_modules/maplibre-gl/dist/`).
+2. **Middleware blocking static assets**: the auth middleware's matcher only
+   excluded specific image extensions, not `.mjs` — so the worker file above
+   was being redirected to `/login` (served as HTML) for unauthenticated
+   requests. Fixed in `src/proxy.ts` by adding `mjs` to the excluded-extension
+   regex.
+3. **`line-offset` sign math for overlapping routes**: when two segments cover
+   the same physical path in opposite directions (e.g. an out-and-back leg,
+   stored as the literal coordinate-array reverse), MapLibre's `line-offset`
+   is relative to *each line's own drawn direction* — giving both the same
+   offset magnitude with opposite signs pushes them to the *same* physical
+   side, not opposite sides. Fixed in `computeParallelLineStyles` in
+   `RouteMap.tsx` by detecting direction relative to a reference segment and
+   flipping the offset sign for reversed ones.
+4. **Custom MapLibre marker positioning**: a custom marker element must not
+   set inline `position: relative` — it overrides MapLibre's own
+   `.maplibregl-marker { position: absolute }` class rule (inline always
+   wins), breaking pan/zoom tracking. See `createSplitMarkerElement` in
+   `RouteMap.tsx`.
+5. **Existing campsite/parking coordinate errors**: independent research
+   during the geometry work turned up campsite/trailhead coordinates that
+   were wrong by anywhere from ~1,000 ft (elevation-equivalent) to ~10 miles
+   in 4 of 5 parks — including 3 Sequoia campsites sharing an identical,
+   clearly copy-pasted longitude. Fixed 13 rows in
+   `supabase/migrations/0007_fix_campsite_parking_coordinates.sql`. A few
+   (Rae Lakes camp, Grouse Lake, Wolverton Trailhead) were left as-is —
+   flagged wrong but no independently-sourced correct coordinate was found.
+6. **Node's `fetch()` unreliable in this sandboxed environment**: raw `fetch()`
+   calls to the Overpass API and OpenTopoData intermittently failed (connection
+   timeouts, `HTTP 000`) while `curl` to the identical URLs succeeded
+   reliably. Root cause not fully diagnosed (some networking-stack difference
+   specific to this sandbox). **All pipeline scripts now shell out to `curl`
+   via `child_process.execFile`** instead of using `fetch()` — see `curlGet()`
+   in `scripts/osm-geometry/geo-pipeline.js`. If you hit similar mystery
+   network failures from Node in this environment again, try curl first.
+7. **Overpass API reliability**: the primary `overpass-api.de` instance
+   occasionally 504s on broad bbox queries and relation-recursion queries,
+   especially for the Sierra parks. The pipeline mirrors across
+   `overpass-api.de`, `lz4.overpass-api.de`, and `overpass.kumi.systems`
+   (see `OVERPASS_MIRRORS` in `geo-pipeline.js`). Targeted
+   `way["name"~"..."]` queries are much more reliable than broad bbox scans.
+
+## Current data state (verify before trusting — this will drift)
+
+- **`trail_segments.geometry`**: 49/54 segments have *some* geometry; only
+  **5 have dense, verified-accurate real OSM geometry** (Half Dome's
+  summit-approach leg, 3 of 4 Franklin Lakes segments, one High Sierra Trail
+  leg). The other 44 keep the original hand-researched 3-8-point
+  approximation. 5 segments remain `null` (Pinnacles: 2 segments with
+  genuinely unsourced junction points; the geometry pipeline wasn't able to
+  improve on these either).
+- **`sights.lat`/`lng`**: 5 of ~27 sights have real backfilled coordinates
+  (matched by strict name verification against OSM POI nodes). The rest still
+  rely on `mile_marker`-based interpolation along the route (see
+  `pointAlongLine` in `src/lib/geo.ts`, used as a fallback in `RouteMap.tsx`).
+- **`trail_amenities`** (new table): 207 rows — 85 restrooms, 122 water
+  sources, sourced from OSM `amenity=toilets`/`natural=spring`/
+  `amenity=drinking_water`, scoped to each park's bbox (not per-trail — the
+  `trail_id` column is null for all of them currently, `park_id` only).
+- All of the above is captured in `supabase/seed/0011`–`0017` for
+  reproducibility if the DB ever needs to be rebuilt from scratch.
+
+## Known gaps / not yet done
+
+- **Visual verification is still outstanding.** I (the agent) cannot render
+  WebGL/composite frames in this sandboxed browser tool when the pane isn't
+  actively displayed, so every map/chart change this session was verified via
+  lint/tsc/DB queries + asking you to look, not a screenshot. **Please check
+  the Half Dome trail page and a couple others to confirm the map/chart
+  actually look right before trusting this summary fully.**
+- **Geometry match yield is low (5/54 via the new pipeline).** The
+  chain-matching algorithm (`findBestChainedPath` in
+  `scripts/osm-geometry/geo-pipeline.js`) is a greedy goal-seeking walk, not a
+  real graph search — it can still get confused at complex multi-way
+  junctions (Yosemite Valley was the worst case; Happy Isles specifically
+  never matched despite multiple tuning attempts). A proper algorithm
+  (Dijkstra/A* over a real trail graph, not greedy nearest-remaining-distance)
+  would likely recover more of the 44 remaining approximate segments. This is
+  a reasonable next investment if more accurate maps matter enough to justify
+  more time.
+- **`trail_amenities.trail_id`** is unset for all 207 rows — they're
+  park-scoped only. `RouteMap.tsx` handles this fine at render time (filters
+  by proximity to the segments actually shown, see `nearRoute` in
+  `RouteMap.tsx`), but there's no admin/query path to list amenities "for
+  trail X" via the `trail_id` column as designed.
+- **No dedicated UI list for amenities** (unlike Parking, which has a list
+  section on the trail detail page) — restrooms/water sources currently only
+  show as map markers, not in any text list. Was explicitly scoped out as a
+  "nice to have, not required" in the plan.
+- **Parking-location cross-check against OSM** was planned but not executed
+  (ran out of remaining scope/time after the geometry + POI passes).
+
+## Where the working scripts live
+
+- `scripts/osm-geometry/` in the repo (copied from the session's temp
+  scratchpad, which will NOT persist to a new session) — `geo-pipeline.js`
+  (the reusable toolkit: Overpass fetching, chain-matching, downsampling,
+  bulk elevation), `run-pipeline.js` (the segment-geometry driver, has all 54
+  segments' hand-researched start/end coords hardcoded in
+  `segments-data.js`), `run-poi-pipeline.js` (the POI/amenity driver, sight
+  names hardcoded in `sights-data.js`), `parks-bboxes.js`. These are plain
+  Node scripts (Node 18+, no npm deps — shells out to `curl`), **not** part
+  of the Next.js app itself; run them manually if picking this work back up
+  (`node scripts/osm-geometry/run-pipeline.js` from the repo root, writes
+  `pipeline-results.json` next to itself and resumes from where it left off
+  if rerun).
+- The original plan file for this work session:
+  `C:\Users\awall\.claude\plans\cosmic-spinning-cherny.md` (not in the repo,
+  may not be accessible from a different machine/session).
+
+## Suggested next steps
+
+1. **Get visual confirmation** from the user that the map/chart/markers all
+   render correctly — this is the single biggest open unknown.
+2. Decide whether to invest more in the geometry-matching algorithm (higher
+   yield on real trail data) or move on to other Phase 3/4/5 work — this is a
+   genuine scope/priority call, not something to just keep grinding on
+   unprompted.
+3. If continuing the OSM work: the natural next step is a proper graph-based
+   path search (build an actual node/edge graph from all fetched ways, run
+   Dijkstra/A* from the start point to the end point) instead of the current
+   greedy walk — should meaningfully improve match yield at complex junctions.
+4. Otherwise: Phase 4 (Permits/Parking/Printable Plan polish) or Phase 5
+   (Sharing) per `BUILD_PLAN.md` §9 are the next unstarted phases.

@@ -1,0 +1,70 @@
+// Existing sights per park (id, name) to reconcile against real OSM POI coordinates.
+module.exports = {
+  yosemite: {
+    parkId: "00000000-0000-4000-8000-000000000001",
+    bbox: [37.71, -119.60, 37.94, -119.34],
+    sights: [
+      { id: "00000000-0000-4000-8000-000000000301", name: "Vernal Fall" },
+      { id: "00000000-0000-4000-8000-000000000302", name: "Half Dome Summit" },
+      { id: "00000000-0000-4000-8000-000000000303", name: "Cathedral Lakes" },
+      { id: "00000000-0000-4000-8000-000000000304", name: "Waterwheel Falls" },
+      { id: "00000000-0000-4000-8000-000000000305", name: "Tuolumne Meadows" },
+      { id: "00000000-0000-4000-8000-000000000306", name: "Nevada Fall" },
+      { id: "00000000-0000-4000-8000-000000000307", name: "Sunrise Lakes" },
+      { id: "00000000-0000-4000-8000-000000000308", name: "Merced Lake" },
+      { id: "00000000-0000-4000-8000-000000000309", name: "Tuolumne Falls / White Cascade" },
+    ],
+  },
+  pinnacles: {
+    parkId: "00000000-0000-4000-8000-000000000002",
+    bbox: [36.46, -121.24, 36.53, -121.15],
+    sights: [
+      { id: "00000000-0000-4000-8000-000000000701", name: "Bear Gulch Cave" },
+      { id: "00000000-0000-4000-8000-000000000702", name: "High Peaks Trail" },
+      { id: "00000000-0000-4000-8000-000000000703", name: "Balconies Cave" },
+      { id: "00000000-0000-4000-8000-000000000704", name: "California Condor" },
+      { id: "00000000-0000-4000-8000-000000000705", name: "Condor Gulch Overlook" },
+      { id: "00000000-0000-4000-8000-000000000706", name: "High Peaks Trail" },
+    ],
+  },
+  sequoia: {
+    parkId: "00000000-0000-4000-8000-000000000003",
+    bbox: [36.39, -118.77, 36.62, -118.55],
+    sights: [
+      { id: "00000000-0000-4000-8000-000000001101", name: "Pear Lake Ski Hut" },
+      { id: "00000000-0000-4000-8000-000000001102", name: "Farewell Gap" },
+      { id: "00000000-0000-4000-8000-000000001103", name: "Giant Forest" },
+      { id: "00000000-0000-4000-8000-000000001104", name: "Kaweah Peaks from the High Sierra Trail" },
+      { id: "00000000-0000-4000-8000-000000001105", name: "Hamilton Lake" },
+      { id: "00000000-0000-4000-8000-000000001106", name: "Giant Forest" },
+    ],
+  },
+  lassen: {
+    parkId: "00000000-0000-4000-8000-000000000004",
+    bbox: [40.42, -121.53, 40.57, -121.28],
+    sights: [
+      { id: "00000000-0000-4000-8000-000000002301", name: "Snag Lake" },
+      { id: "00000000-0000-4000-8000-000000002302", name: "Cinder Cone and Painted Dunes" },
+      { id: "00000000-0000-4000-8000-000000002303", name: "Snag Lake" },
+      { id: "00000000-0000-4000-8000-000000002304", name: "Cinder Cone and Painted Dunes" },
+      { id: "00000000-0000-4000-8000-000000002305", name: "Twin Lakes" },
+      { id: "00000000-0000-4000-8000-000000002306", name: "Snag Lake" },
+      { id: "00000000-0000-4000-8000-000000002307", name: "Lassen Peak" },
+    ],
+  },
+  kingsCanyon: {
+    parkId: "00000000-0000-4000-8000-000000000005",
+    bbox: [36.74, -118.66, 36.89, -118.33],
+    sights: [
+      { id: "00000000-0000-4000-8000-000000003101", name: "Mist Falls" },
+      { id: "00000000-0000-4000-8000-000000003102", name: "Rae Lakes and Fin Dome" },
+      { id: "00000000-0000-4000-8000-000000003103", name: "Glen Pass" },
+      { id: "00000000-0000-4000-8000-000000003104", name: "Zumwalt Meadow" },
+      { id: "00000000-0000-4000-8000-000000003105", name: "Mist Falls" },
+      { id: "00000000-0000-4000-8000-000000003106", name: "Zumwalt Meadow" },
+      { id: "00000000-0000-4000-8000-000000003107", name: "Copper Creek Trail" },
+      { id: "00000000-0000-4000-8000-000000003108", name: "Copper Creek Trail (upper switchbacks)" },
+      { id: "00000000-0000-4000-8000-000000003109", name: "Zumwalt Meadow" },
+    ],
+  },
+};

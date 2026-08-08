@@ -6,6 +6,7 @@ import type {
   Permit,
   Sight,
   Trail,
+  TrailAmenity,
   TrailNightCampsite,
   TrailSegment,
 } from "@/lib/data/types";
@@ -169,6 +170,16 @@ export async function getParkingByTrail(trailId: string): Promise<ParkingLocatio
     .order("trailhead_name");
   if (error) throw error;
   return data as ParkingLocation[];
+}
+
+export async function getTrailAmenitiesByTrail(trailId: string): Promise<TrailAmenity[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trail_amenities")
+    .select("*")
+    .eq("trail_id", trailId);
+  if (error) throw error;
+  return data as TrailAmenity[];
 }
 
 export async function getPermitsByTrail(trailId: string): Promise<Permit[]> {
