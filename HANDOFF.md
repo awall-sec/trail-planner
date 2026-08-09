@@ -347,6 +347,31 @@ moving both constants to a plain shared module
 remembering for any future read-only/server-rendered variant of an existing
 client-editable component in this codebase.
 
+## Live NPS alerts (needs an API key from the user to actually show anything)
+
+Built against the official NPS Data API (`developer.nps.gov`), documented
+and versioned (unlike the recreation.gov permit-availability integration,
+which uses an undocumented endpoint) -- but it requires a free API key with
+no keyless tier, which only the user can obtain (a short signup form at
+https://www.nps.gov/subjects/developer/get-started.htm). Everything is
+built and wired in; it just needs `NPS_API_KEY=<key>` added to
+`.env.local` (server-only, not `NEXT_PUBLIC_`) to start showing anything.
+
+- `src/lib/nps/alerts.ts`: `getParkAlerts(parkCode)`, same tolerant
+  pattern as the recreation.gov integration -- returns `null` on any
+  failure (including a missing key) so callers just hide the UI, vs. `[]`
+  for "fetched fine, zero active alerts" (shown as a reassuring "No active
+  alerts" line, since that's a genuinely different, useful state from "we
+  don't know").
+- `ParkAlerts` component: color-coded by category (Park Closure/Danger =
+  red, Caution = amber, Information = blue), sorted most-severe first.
+- Wired into the park page (general awareness) and the trip page
+  (actionable, right before a real trip). Not yet on the trail detail page
+  or the public share page -- straightforward to add the same way if
+  wanted.
+- 30-minute cache (`next: { revalidate: 1800 }`) since alerts don't change
+  minute-to-minute.
+
 ## Suggested next steps
 
 1. **Get visual confirmation** from the user that the map/chart/markers all

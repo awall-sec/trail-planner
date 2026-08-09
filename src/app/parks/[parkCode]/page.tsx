@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/parks";
 import { AppHeader } from "@/components/AppHeader";
 import { HikeTypeBadge } from "@/components/HikeTypeBadge";
+import { ParkAlerts } from "@/components/ParkAlerts";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -76,6 +77,12 @@ export default async function ParkDetailPage({
           <p className="max-w-3xl text-zinc-700 dark:text-zinc-300">
             {park.description}
           </p>
+        )}
+
+        {park.nps_park_code && (
+          <div className="mt-4 max-w-3xl">
+            <ParkAlerts parkCode={park.nps_park_code} />
+          </div>
         )}
 
         <section className="mt-10 mb-4">
