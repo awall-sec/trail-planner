@@ -235,6 +235,19 @@ distance checks. Fixing `findBestChainedPath` to check mid-way touches on
 every hop (not just the seed) would likely recover other similarly-shaped
 failures elsewhere in the 11 remaining unmatched segments.
 
+## Wolverton Trailhead pin corrected
+
+User reported the Wolverton TH marker (Lakes Trail and Alta Trail both use
+it) wasn't at the real parking area. The stored coordinate (36.6031,
+-118.7375) turned out to be a leftover hand-researched approximation ~700m
+north of the actual lot — never corrected when real OSM trail geometry was
+added later, which is why only the pin looked wrong and not the route lines
+(those already terminated near the correct spot). Fixed in
+`0016_fix_wolverton_trailhead_coordinate.sql` to OSM's "Wolverton Trailhead
+Info" node (36.5969471, -118.7345358), ~30m from where the real geometry
+already ends. Worth spot-checking other trailhead/parking pins that predate
+the OSM geometry work for the same class of drift, if more turn up.
+
 ## Suggested next steps
 
 1. **Get visual confirmation** from the user that the map/chart/markers all
