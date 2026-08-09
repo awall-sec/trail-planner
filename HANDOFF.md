@@ -248,6 +248,61 @@ Info" node (36.5969471, -118.7345358), ~30m from where the real geometry
 already ends. Worth spot-checking other trailhead/parking pins that predate
 the OSM geometry work for the same class of drift, if more turn up.
 
+## Trip creation bug fixed: missing final day
+
+User reported the Alta trip only showed Day 1 on the trip page. Root cause:
+`createTripFromTrail()` (`src/app/trips/actions.ts`) created one `trip_days`
+row per **campsite** (from `trail_campsites`), not one per **calendar day of
+hiking** -- a trip's last day is always a hike-out with no camp that night,
+so it silently got zero `trip_days` rows, and the trip page only renders
+days it has a `trip_days` row for. This affected every multi-day trail in
+the app, not just Alta (confirmed: the existing High Sierra Trail trip was
+missing its day 4 too) -- it just hadn't been noticed until a real trip got
+created and actually checked. Fixed to derive the day count from distinct
+`day_number` values in the trail's segments instead; backfilled the 3
+already-broken trips in `0019_backfill_missing_trip_days.sql`. `trip_segments`
+was never affected (that insert was already day-agnostic).
+
+## Printable plan now includes the route map and elevation chart
+
+Added the real interactive `RouteMap`/`ElevationChart` components (not a
+static image export) to `/trips/[tripId]/print`. The Recharts elevation
+chart is SVG and prints natively with no changes needed. The MapLibre map
+needed one fix: `canvasContextAttributes: { preserveDrawingBuffer: true }`
+added to its `maplibregl.Map()` init in `RouteMap.tsx` -- WebGL canvases
+clear their buffer after each frame by default, so without this, browser
+print/PDF rendering (and screenshots) capture a blank canvas instead of the
+map. Print CSS hides MapLibre's on-screen zoom/attribution controls, which
+don't mean anything on paper. Note: this relies on the map having actually
+finished loading tiles by the time the user hits print, which is fine for
+manual printing (the user sees it loaded before clicking) but would need
+more care for any future auto-print-on-load flow.
+
+## Trailhead addresses, permit offices, and more coordinate corrections
+
+Added `parking_locations.address` and `permits.office_name/office_address/
+office_lat/office_lng`, populated via 4 parallel research agents (one per
+park, Pinnacles has no wilderness permit so no office research needed
+there) and shown on the printable trip plan. Cross-checked each agent's
+claims for internal consistency before trusting them — one (Yosemite's
+Glen Aulin/Lembert Dome trailhead) was genuinely ambiguous between two real,
+distinct physical trailheads in the same area, so that one was **left
+unchanged** rather than guessed at.
+
+This research also caught **more wrong trailhead coordinates**, on top of
+the Wolverton one fixed earlier this session — several were lake-centroid
+or nearby-landmark substitutes rather than the actual trailhead/parking lot:
+Butte Lake (2.9km off), Juniper Lake (1.5km), Cathedral Lakes (1.8km),
+Copper Creek (2.7km), Road's End (1.15km), Crescent Meadow (1.3km), and all
+3 Pinnacles trailheads (1.2-2.6km, two of which turned out to be the same
+physical parking lot despite having different coordinates on file). All
+corrected in `0022_trailhead_addresses_and_permit_offices.sql`. Given how
+often this keeps turning up, it's worth treating **every** hand-researched
+coordinate in this dataset as unverified until independently cross-checked
+against real trail geometry or a live map source — this is now the 3rd
+distinct round of this exact class of bug found this session (campsite/
+parking fixes in `0007`, Wolverton in `0016`, and this batch).
+
 ## Suggested next steps
 
 1. **Get visual confirmation** from the user that the map/chart/markers all

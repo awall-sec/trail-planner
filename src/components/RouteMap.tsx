@@ -233,6 +233,10 @@ export function RouteMap({
       center: [0, 0],
       zoom: 1,
       attributionControl: { compact: true },
+      // Without this, the WebGL canvas's buffer is cleared right after each
+      // frame, so browser print/PDF rendering (and screenshots) capture a
+      // blank canvas instead of the map -- needed for the printable trip plan.
+      canvasContextAttributes: { preserveDrawingBuffer: true },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");

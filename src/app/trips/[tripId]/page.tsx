@@ -9,7 +9,7 @@ import {
   getTrailAmenitiesByTrail,
   getTrailSegmentsWithSights,
 } from "@/lib/data/parks";
-import { getTripDaysWithCampsites, getTrip } from "@/lib/data/trips";
+import { getTripDaysWithCampsites, getTripPermitStatuses, getTrip } from "@/lib/data/trips";
 import { groupSegmentsByDay } from "@/lib/itinerary";
 import { labelCampsiteOccurrences, labelSights } from "@/lib/labels";
 import type { Campsite, TrailAmenity, TripDayWithCampsite } from "@/lib/data/types";
@@ -61,12 +61,18 @@ export default async function TripDetailPage({
     getTripDaysWithCampsites(tripId),
   ]);
 
-  const [segments, permits, campsiteOptionRows, trailAmenities] = await Promise.all([
-    trip.trail_id ? getTrailSegmentsWithSights(trip.trail_id) : Promise.resolve([]),
-    trip.trail_id ? getPermitsByTrail(trip.trail_id) : Promise.resolve([]),
-    trip.trail_id ? getCampsitesByTrail(trip.trail_id) : Promise.resolve([]),
-    trip.trail_id ? getTrailAmenitiesByTrail(trip.trail_id) : Promise.resolve([]),
-  ]);
+  const [segments, permits, campsiteOptionRows, trailAmenities, permitStatusRows] =
+    await Promise.all([
+      trip.trail_id ? getTrailSegmentsWithSights(trip.trail_id) : Promise.resolve([]),
+      trip.trail_id ? getPermitsByTrail(trip.trail_id) : Promise.resolve([]),
+      trip.trail_id ? getCampsitesByTrail(trip.trail_id) : Promise.resolve([]),
+      trip.trail_id ? getTrailAmenitiesByTrail(trip.trail_id) : Promise.resolve([]),
+      getTripPermitStatuses(tripId),
+    ]);
+
+  const permitStatuses = new Map(
+    [...permitStatusRows].map(([permitId, row]) => [permitId, row.status]),
+  );
 
   const segmentsByDay = new Map(
     groupSegmentsByDay(segments).map((g) => [g.dayNumber, g.segments]),
@@ -128,6 +134,13 @@ export default async function TripDetailPage({
           )}
         </div>
 
+        <Link
+          href={`/trips/${tripId}/print`}
+          className="mt-3 inline-block text-sm font-medium text-blue-700 underline dark:text-blue-400"
+        >
+          Print trip plan
+        </Link>
+
         {fitWarnings.length > 0 && (
           <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
             <p className="font-medium">Group size may not fit this itinerary:</p>
@@ -158,7 +171,12 @@ export default async function TripDetailPage({
             <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Permits &amp; fees for this route
             </h2>
-            <PermitList permits={permits} />
+            <PermitList
+              permits={permits}
+              tripStartDate={trip.start_date}
+              tripId={tripId}
+              permitStatuses={permitStatuses}
+            />
           </section>
         )}
       </main>

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Trip, TripDayWithCampsite } from "@/lib/data/types";
+import type { Trip, TripDayWithCampsite, TripPermitStatus } from "@/lib/data/types";
 
 export async function getTripsByUser(userId: string): Promise<Trip[]> {
   const supabase = await createClient();
@@ -34,4 +34,16 @@ export async function getTripDaysWithCampsites(
     .order("day_number");
   if (error) throw error;
   return (data ?? []) as unknown as TripDayWithCampsite[];
+}
+
+export async function getTripPermitStatuses(
+  tripId: string,
+): Promise<Map<string, TripPermitStatus>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trip_permit_statuses")
+    .select("*")
+    .eq("trip_id", tripId);
+  if (error) throw error;
+  return new Map((data ?? []).map((row) => [row.permit_id as string, row as TripPermitStatus]));
 }

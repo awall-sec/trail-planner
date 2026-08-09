@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCampsitesByTrail, getTrail } from "@/lib/data/parks";
+import type { PermitStatus } from "@/lib/data/types";
 
 function addDaysToDateString(dateStr: string, daysToAdd: number): string {
   const date = new Date(`${dateStr}T00:00:00Z`);
@@ -62,13 +63,36 @@ export async function createTripFromTrail(formData: FormData) {
   const tripId = trip.id as string;
 
   try {
+    const { data: trailSegments, error: segError } = await supabase
+      .from("trail_segments")
+      .select("id, seq, day_number")
+      .eq("trail_id", trailId)
+      .order("seq");
+    if (segError) throw segError;
+
     const nightCampsites = await getCampsitesByTrail(trailId);
-    if (nightCampsites.length > 0) {
+    const campsiteIdByNight = new Map(
+      nightCampsites.map(({ night_number, campsite }) => [night_number, campsite.id]),
+    );
+
+    // One trip_days row per calendar day of hiking (every distinct day_number
+    // in the trail's segments), not one per campsite -- a trip's last day is
+    // always a hike-out with no camp that night, so campsite count alone
+    // undercounts the trip's actual length.
+    const dayNumbers = [
+      ...new Set(
+        (trailSegments ?? [])
+          .map((s) => s.day_number)
+          .filter((n): n is number => n != null),
+      ),
+    ].sort((a, b) => a - b);
+
+    if (dayNumbers.length > 0) {
       const { error } = await supabase.from("trip_days").insert(
-        nightCampsites.map(({ night_number, campsite }) => ({
+        dayNumbers.map((dayNumber) => ({
           trip_id: tripId,
-          day_number: night_number,
-          campsite_id: campsite.id,
+          day_number: dayNumber,
+          campsite_id: campsiteIdByNight.get(dayNumber) ?? null,
         })),
       );
       if (error) throw error;
@@ -78,13 +102,6 @@ export async function createTripFromTrail(formData: FormData) {
         .insert({ trip_id: tripId, day_number: 1, campsite_id: null });
       if (error) throw error;
     }
-
-    const { data: trailSegments, error: segError } = await supabase
-      .from("trail_segments")
-      .select("id, seq")
-      .eq("trail_id", trailId)
-      .order("seq");
-    if (segError) throw segError;
 
     if (trailSegments && trailSegments.length > 0) {
       const { error } = await supabase.from("trip_segments").insert(
@@ -123,6 +140,30 @@ export async function updateTripDay(formData: FormData) {
     })
     .eq("id", tripDayId);
 
+  if (error) throw error;
+
+  revalidatePath(`/trips/${tripId}`);
+}
+
+export async function updatePermitStatus(
+  tripId: string,
+  permitId: string,
+  status: PermitStatus,
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  // RLS (owner-only) is the real access boundary here -- this upsert simply
+  // no-ops if the caller doesn't own the trip.
+  const { error } = await supabase
+    .from("trip_permit_statuses")
+    .upsert(
+      { trip_id: tripId, permit_id: permitId, status, updated_at: new Date().toISOString() },
+      { onConflict: "trip_id,permit_id" },
+    );
   if (error) throw error;
 
   revalidatePath(`/trips/${tripId}`);

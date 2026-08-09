@@ -87,6 +87,7 @@ export type ParkingLocation = {
   lat: number | null;
   lng: number | null;
   permit_notes: string | null;
+  address: string | null;
 };
 
 export type Permit = {
@@ -101,6 +102,13 @@ export type Permit = {
   max_group_size: number | null;
   recreation_gov_permit_id: string | null;
   recreation_gov_division_id: string | null;
+  reservation_opens_days_before: number | null;
+  reservation_closes_days_before: number | null;
+  walk_up_only: boolean;
+  office_name: string | null;
+  office_address: string | null;
+  office_lat: number | null;
+  office_lng: number | null;
 };
 
 export type Trip = {
@@ -113,6 +121,15 @@ export type Trip = {
   end_date: string | null;
   party_size: number | null;
   share_token: string;
+};
+
+export type PermitStatus = "not_applied" | "applied" | "confirmed" | "denied";
+
+export type TripPermitStatus = {
+  trip_id: string;
+  permit_id: string;
+  status: PermitStatus;
+  updated_at: string;
 };
 
 export type TripDay = {
