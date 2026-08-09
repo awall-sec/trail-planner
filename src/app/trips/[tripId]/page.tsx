@@ -18,6 +18,7 @@ import { ElevationChart } from "@/components/ElevationChart";
 import { PermitList } from "@/components/PermitList";
 import { RouteMap } from "@/components/RouteMap";
 import { SegmentList } from "@/components/SegmentList";
+import { ShareLinkBox } from "@/components/ShareLinkBox";
 import { updateTripDay } from "@/app/trips/actions";
 
 function formatDateRange(start: string | null, end: string | null): string | null {
@@ -140,6 +141,16 @@ export default async function TripDetailPage({
         >
           Print trip plan
         </Link>
+
+        <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            Share this trip
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Anyone with this link can view a read-only version of this trip -- no account needed.
+          </p>
+          <ShareLinkBox tripId={tripId} shareToken={trip.share_token} />
+        </div>
 
         {fitWarnings.length > 0 && (
           <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">

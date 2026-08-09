@@ -143,3 +143,14 @@ export type TripDay = {
 export type TripDayWithCampsite = TripDay & {
   campsite: Campsite | null;
 };
+
+/** What a public share link exposes -- deliberately narrower than Trip (no owner_user_id, no share_token). */
+export type SharedTripInfo = {
+  id: string;
+  park_id: string;
+  trail_id: string | null;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+  party_size: number | null;
+};

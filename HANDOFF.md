@@ -303,6 +303,50 @@ against real trail geometry or a live map source — this is now the 3rd
 distinct round of this exact class of bug found this session (campsite/
 parking fixes in `0007`, Wolverton in `0016`, and this batch).
 
+## Phase 5: public view-only trip sharing
+
+Built on `trips.share_token` (existed already, unused) rather than the
+`trip_shares`/`is_trip_shared_with_current_user` invite-a-registered-user
+infrastructure also already in the DB -- asked the user directly since the
+two are genuinely different product directions and the DB had groundwork
+for both; they chose the public-link model, matching BUILD_PLAN.md's
+original wording. The invite-by-user path (`trip_shares` table,
+`is_owner_of_trip`/`is_trip_shared_with_current_user` RLS helpers) is still
+there, still unused, if that direction is wanted later.
+
+- New `/share/[token]` route (public, added to `PUBLIC_PATHS` in
+  `middleware.ts`), read-only: real map/chart/itinerary/permits, no edit
+  forms, no permit-status dropdown (shows status as a read-only badge
+  instead).
+- Access goes through 3 new `SECURITY DEFINER` RPC functions
+  (`get_shared_trip`, `get_shared_trip_days`, `get_shared_trip_permit_statuses`
+  in `0023_public_share_link.sql`) rather than widening RLS on
+  `trips`/`trip_days`/`trip_permit_statuses` to the `anon` role directly --
+  same pattern as the existing `is_owner_of_trip` helper, keeps the
+  security boundary in one small auditable place. Explicit column lists,
+  not `select *` -- `owner_user_id` and `share_token` itself are
+  deliberately not returned to an anonymous viewer.
+- Owner-side: a "Share this trip" box on the trip page with copy-link and
+  "Generate new link" (rotates `share_token`, invalidating the old link).
+- `trip_segments` turned out to be write-only (nothing in the app ever
+  reads it) -- confirmed via grep before deciding it didn't need a share
+  RPC of its own.
+
+**Real bug found and fixed while building this** (only surfaced now because
+this is the first page in the app I could actually test myself without
+login): a Server Component (`PermitList`, no `"use client"`) imported plain
+data constants (`STATUS_LABEL`/`STATUS_STYLE`) from a `"use client"` file
+(`PermitStatusSelect.tsx`). That resolved to `undefined` at render time on
+the server -- Next.js's RSC bundler swaps a `"use client"` module's exports
+for client references as a whole, not per-export, so even non-component
+consts break when a Server Component touches them directly. The existing
+editable dropdown never hit this (it's itself a Client Component, so it
+imports its own file's consts locally, same side of the boundary). Fixed by
+moving both constants to a plain shared module
+(`src/lib/permitStatusStyles.ts`) that both sides import from. Worth
+remembering for any future read-only/server-rendered variant of an existing
+client-editable component in this codebase.
+
 ## Suggested next steps
 
 1. **Get visual confirmation** from the user that the map/chart/markers all

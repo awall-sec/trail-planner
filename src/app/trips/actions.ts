@@ -145,6 +145,28 @@ export async function updateTripDay(formData: FormData) {
   revalidatePath(`/trips/${tripId}`);
 }
 
+export async function regenerateShareLink(tripId: string): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const newToken = crypto.randomUUID();
+  // RLS (owner-only) is the real access boundary -- this no-ops for a trip
+  // the caller doesn't own, and .single() then throws (no row returned).
+  const { data, error } = await supabase
+    .from("trips")
+    .update({ share_token: newToken })
+    .eq("id", tripId)
+    .select("share_token")
+    .single();
+  if (error) throw error;
+
+  revalidatePath(`/trips/${tripId}`);
+  return data.share_token as string;
+}
+
 export async function updatePermitStatus(
   tripId: string,
   permitId: string,

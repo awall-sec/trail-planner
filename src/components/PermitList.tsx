@@ -2,6 +2,7 @@ import type { Permit, PermitStatus } from "@/lib/data/types";
 import { PermitAvailability } from "@/components/PermitAvailability";
 import { PermitStatusSelect } from "@/components/PermitStatusSelect";
 import { getPermitDeadlineStatus } from "@/lib/permitDeadline";
+import { STATUS_LABEL, STATUS_STYLE } from "@/lib/permitStatusStyles";
 
 function formatDate(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-US", {
@@ -98,6 +99,16 @@ export function PermitList({
                 initialStatus={permitStatuses?.get(permit.id) ?? "not_applied"}
               />
             </div>
+          )}
+          {!tripId && permitStatuses && (
+            <p className="mt-2 text-xs">
+              <span className="mr-1.5 font-medium text-zinc-500">Permit status:</span>
+              <span
+                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[permitStatuses.get(permit.id) ?? "not_applied"]}`}
+              >
+                {STATUS_LABEL[permitStatuses.get(permit.id) ?? "not_applied"]}
+              </span>
+            </p>
           )}
           {permit.description && (
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
