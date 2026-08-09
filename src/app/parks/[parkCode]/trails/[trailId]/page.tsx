@@ -190,16 +190,37 @@ export default async function TrailDetailPage({
         <h2 className="mt-8 mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Route
         </h2>
-        {groupSegmentsByDay(segments).map((day) => (
-          <div key={day.dayNumber ?? "unassigned"} className="mb-8">
-            {day.dayNumber != null && (
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                Day {day.dayNumber}
-              </h3>
-            )}
-            <SegmentList segments={day.segments} sightLabels={sightLabels} />
-          </div>
-        ))}
+        {groupSegmentsByDay(segments).map((day, dayIndex) => {
+          const campsiteIndex = campsites.findIndex(
+            (c) => c.night_number === day.dayNumber,
+          );
+          return (
+            <div key={day.dayNumber ?? "unassigned"} className="mb-8">
+              {day.dayNumber != null && (
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  Day {day.dayNumber}
+                </h3>
+              )}
+              <SegmentList
+                segments={day.segments}
+                sightLabels={sightLabels}
+                trailheadOverview={
+                  dayIndex === 0
+                    ? parking.map((p) => ({ parking: p, label: parkingLabels.get(p.id) }))
+                    : undefined
+                }
+                campsiteOverview={
+                  campsiteIndex !== -1
+                    ? {
+                        campsite: campsites[campsiteIndex].campsite,
+                        label: campsiteOccurrenceLabels[campsiteIndex],
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          );
+        })}
       </main>
     </div>
   );
