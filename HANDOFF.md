@@ -5,6 +5,77 @@ and Phase 3 work: decisions made, bugs found and fixed, current data state,
 and what's left to do. See `BUILD_PLAN.md` for the overall product plan —
 this doc is the "how we got here and what to watch out for" companion to it.
 
+## Current status (read this first, most recent)
+
+Everything below "Where things stand" is the original Phase 2/3 handoff,
+kept for detail. Quick summary of everything since:
+
+- **Phases 1-5 all shipped and committed**: park/trail browser, trip
+  builder, maps/elevation, permit deadline reminders + printable trip plan
+  + permit status tracker + public share links, live NPS alerts. Last
+  pushed commit as of this note: `b3d72ae` "Give ParkAlerts a visible
+  section heading" -- everything through that is on `origin/main`.
+- **Uncommitted, working, not yet pushed**: the home-address /
+  distance-to-nearest-park-entrance feature (`/parks` page). New tables
+  `user_profiles` (owner-only) and `park_entrances` (public, 12 real
+  entrance-station coordinates across all 5 parks, researched and
+  sanity-checked). Geocoding via Nominatim, no API key needed. User was
+  asked "want me to commit?" and hadn't answered before moving to the next
+  task below -- **commit this before/alongside whatever comes next**,
+  don't lose track of it.
+- **Kings Canyon expansion -- done, uncommitted**: added 6 day hikes
+  (Zumwalt Meadow Loop, Roaring River Falls, Hotel Creek Trail to Cedar
+  Grove Overlook, Mist Falls, Don Cecil Trail to Lookout Peak, General
+  Grant Tree Trail) and 2 backpacking trips (Bubbs Creek to Charlotte Lake,
+  Lewis Creek Trail to Frypan Meadow) on top of the existing 3 (Rae Lakes
+  Loop, Paradise Valley, Copper Creek to Grouse Lake). Trails `3004`-`3011`.
+  Two migrations: `0026_kings_canyon_expansion_trails.sql` (trails +
+  segments) and `0027_kings_canyon_expansion_amenities.sql` (campsites,
+  parking, permits, sights). Both already applied to the live Supabase DB
+  via `apply_migration` -- only the local `.sql` files and app data-layer
+  are what's uncommitted to git, the database itself already has the data.
+  - **All 8 trails got real OSM-surveyed geometry** (not hand-researched
+    waypoints), via a new one-off script
+    `scripts/osm-geometry/build-kings-canyon-expansion.js`. Real elevation
+    (OpenTopoData `ned10m`) drove the headline `elevation_gain_ft`/
+    `distance_miles` numbers, which cross-validated tightly against
+    independent web research on the big trails (Don Cecil: 3830ft real vs
+    3815ft researched; Bubbs Creek total: ~6187ft real vs ~5800ft
+    researched; Lewis Creek: 12.0mi real vs 11.9mi researched) -- strong
+    confidence in the data.
+  - **A real bug in the shared `findBestChainedPath` chaining algorithm**
+    surfaced and was worked around by hand: at the real Bubbs Creek Trail /
+    Paradise Valley Trail split near Road's End, its "closest overall
+    endpoint" heuristic picks the wrong branch when the target point lies
+    *mid-way* along a long way rather than at its far end (it undervalues
+    long ways for exactly that reason). Fixed for this session by manually
+    tracing the real OSM node graph at that junction (see the script's
+    `toSplit`/`towardBubbs`/`towardParadiseValley` construction) rather than
+    fixing the shared algorithm -- worth revisiting if this bites again on
+    a future park.
+  - **Known lower-precision spots, documented not hidden**: Hotel Creek
+    Trail's OSM coverage stops at ~1.67mi one-way (short of the ~2.3mi to
+    the actual named "Cedar Grove Overlook"), so that trail's headline
+    stats (3.3mi RT / 1380ft) reflect the real mapped portion, not the full
+    guidebook hike. General Grant Tree Trail's OSM "Grant Tree Loop" way
+    only covers a 0.16mi core loop; headline stats (0.8mi/50ft) use the
+    researched full-loop figures instead since the named POIs (Lincoln
+    Tree, Fallen Monarch, Gamlin Cabin) are on the fuller loop.
+  - Verified via DB spot-checks (row counts, day-number contiguity for
+    `trip_days` generation, `jsonb_array_length` on geometry), `tsc`/`lint`
+    clean, and a temporary debug route rendering two of the new trails
+    end-to-end (map/chart components, segment/day grouping, campsite/
+    parking/permit counts) -- fully cleaned up afterward, confirmed via
+    `git status`.
+- **NPS_API_KEY** is in the user's local `.env.local` only (gitignored,
+  never pushed) -- if alerts aren't showing on a fresh checkout/deploy,
+  that's why. Same for Supabase env vars.
+- **Deployment**: user has Vercel already connected to this GitHub repo
+  from a prior session (auto-deploys on push to `main`). I have no
+  visibility into that Vercel project myself. `NPS_API_KEY` was NOT yet
+  confirmed added to Vercel's env vars as of this note -- worth checking if
+  live alerts still aren't showing after a redeploy.
+
 ## Where things stand
 
 - **Phase 1** (park/trail browser, 5 parks seeded) — done.
@@ -371,6 +442,35 @@ built and wired in; it just needs `NPS_API_KEY=<key>` added to
   wanted.
 - 30-minute cache (`next: { revalidate: 1800 }`) since alerts don't change
   minute-to-minute.
+
+## Home address / distance-to-nearest-entrance on the parks page
+
+New feature: a user can save a home address on `/parks`, and each park
+card shows straight-line distance to that park's nearest *vehicle entrance*
+(the actual fee/ranger gate, not a trailhead deep inside the park -- those
+are two very different distances for a park the size of Yosemite).
+
+- `user_profiles` (owner-only RLS): `home_address`, `home_lat`, `home_lng`.
+- `park_entrances` (public read, matches the reference-data convention):
+  12 real entrance-station coordinates across all 5 parks, researched via
+  2 parallel agents (NPS-affiliated OuterSpatial POI data, USGS GNIS/
+  TopoZone, and OSM `barrier=toll_booth` nodes, cross-checked 2-3 sources
+  per entrance) -- see `0025_park_entrances.sql` for the full per-entrance
+  confidence notes. Lowest-confidence ones: Big Stump (Kings Canyon) and
+  Mineral King (Sequoia) -- both had only one source with decimal
+  precision, accurate to roughly 100-250m per the research agent's own
+  caveat, fine for a rough distance estimate but worth a spot-check if
+  ever used for anything more precise.
+- Geocoding via Nominatim (OpenStreetMap's free geocoder, `src/lib/geocode.ts`)
+  -- no API key needed, unlike NPS alerts. Verified live before wiring in.
+  Same reused `haversineDistanceMeters` from `src/lib/geo.ts` as everywhere
+  else in this app for the actual distance math (verified against known
+  real-world distances from a Bay Area address -- Pinnacles closest at
+  ~81mi, Lassen farthest at ~210mi, all directionally and proportionally
+  correct).
+- This is straight-line distance, not driving distance -- worth being
+  upfront about if it ever comes up, since driving distance to somewhere
+  like Yosemite is meaningfully longer than as-the-crow-flies.
 
 ## Suggested next steps
 
