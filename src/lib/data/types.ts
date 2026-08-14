@@ -8,6 +8,22 @@ export type Park = {
   hero_photo_attribution: string | null;
 };
 
+export type ParkEntrance = {
+  id: string;
+  park_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+};
+
+export type UserProfile = {
+  user_id: string;
+  home_address: string | null;
+  home_lat: number | null;
+  home_lng: number | null;
+  updated_at: string;
+};
+
 export type Trail = {
   id: string;
   park_id: string;

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   Campsite,
+  ParkEntrance,
   ParkingLocation,
   Park,
   Permit,
@@ -16,6 +17,14 @@ export async function getParks(): Promise<Park[]> {
   const { data, error } = await supabase.from("parks").select("*").order("name");
   if (error) throw error;
   return data as Park[];
+}
+
+/** All entrances for all parks in one query -- the table is tiny (a handful per park). */
+export async function getAllParkEntrances(): Promise<ParkEntrance[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("park_entrances").select("*");
+  if (error) throw error;
+  return data as ParkEntrance[];
 }
 
 export async function getParkByCode(parkCode: string): Promise<Park | null> {
