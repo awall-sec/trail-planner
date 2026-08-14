@@ -90,6 +90,27 @@ kept for detail. Quick summary of everything since:
   matters later, NPS.gov press photos (also public domain) are an
   unexplored fallback for those two specifically.
 
+- **New Kings Canyon trip: Copper Creek Trail to Granite Lake** (trail
+  `3012`, `0029_copper_creek_granite_lake.sql`) -- night 1 at Upper Tent
+  Meadow, night 2 at Granite Lake, all the way back down day 3, per your
+  ask. Real OSM geometry (the already-cached "Copper Creek Trail" way,
+  907479450) + real elevation; distances cross-validate well against trip
+  reports (~19mi round trip vs. "10mi one-way / 20mi RT" from AllTrails).
+  Granite Lake itself sits ~1.9mi past where the named OSM way ends, so
+  day 2's final leg is a straight line to the lake's real coordinate
+  rather than a surveyed path -- every trip report checked describes that
+  final stretch through Granite Basin as partly cross-country anyway.
+  Added a real Wikimedia Commons photo for the trail-card thumbnail this
+  time (learned from the last thumbnail bug); Granite Lake itself has no
+  sight photo since nothing exists on Commons for it.
+  - **Found, not fixed (flagged as a separate background task)**: the
+    *existing* "Copper Creek Trail to Grouse Lake" trip (`3003`) was never
+    re-seeded with real geometry -- still 2-point straight-line segments --
+    and its Lower Tent Meadow campsite marker sits ~3 miles off the real
+    trail. Now visibly inconsistent next to the new trail's real geometry
+    on the same trailhead/map. Left alone since it's out of scope for what
+    was asked, but spawned a task to fix it.
+
 ## Where things stand
 
 - **Phase 1** (park/trail browser, 5 parks seeded) — done.
