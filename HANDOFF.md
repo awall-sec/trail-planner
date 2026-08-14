@@ -76,6 +76,20 @@ kept for detail. Quick summary of everything since:
   confirmed added to Vercel's env vars as of this note -- worth checking if
   live alerts still aren't showing after a redeploy.
 
+- **Trail card thumbnails for the Kings Canyon expansion**: fixed via
+  `0028_kings_canyon_trail_photos.sql`. The park page's trail-card thumbnail
+  pulls `photo_urls[0]` from `getTrailHighlightSights` (first sight on a
+  trail's earliest segment) -- none of the sights added alongside the new
+  trails had a photo, and Zumwalt Meadow Loop had no sight row at all. 6 of
+  8 now have real, license-verified Wikimedia Commons photos (Zumwalt
+  Meadow, Roaring River Falls, Mist Falls, Lookout Peak, Charlotte Lake,
+  General Grant Tree). **Cedar Grove Overlook and Frypan Meadow
+  deliberately have no photo** -- a research agent confirmed via direct
+  Commons search + category browse that neither subject has any photo on
+  Wikimedia Commons, and a mismatched substitute wasn't used. If this
+  matters later, NPS.gov press photos (also public domain) are an
+  unexplored fallback for those two specifically.
+
 ## Where things stand
 
 - **Phase 1** (park/trail browser, 5 parks seeded) — done.
